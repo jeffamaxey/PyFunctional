@@ -89,9 +89,7 @@ def is_iterable(val):
 def is_tabulatable(val):
     if is_primitive(val):
         return False
-    if is_iterable(val) or is_namedtuple(val) or isinstance(val, list):
-        return True
-    return False
+    return bool(is_iterable(val) or is_namedtuple(val) or isinstance(val, list))
 
 
 def split_every(parts, iterable):
@@ -117,9 +115,7 @@ def unpack(packed):
     """
     func, args = serializer.loads(packed)
     result = func(*args)
-    if isinstance(result, collections.abc.Iterable):
-        return list(result)
-    return None
+    return list(result) if isinstance(result, collections.abc.Iterable) else None
 
 
 def pack(func, args):
@@ -164,8 +160,7 @@ def lazy_parallelize(func, result, processes=None, partition_size=None):
     pool = Pool(processes=processes)
     partitions = split_every(partition_size, iter(result))
     packed_partitions = (pack(func, (partition,)) for partition in partitions)
-    for pool_result in pool.imap(unpack, packed_partitions):
-        yield pool_result
+    yield from pool.imap(unpack, packed_partitions)
     pool.terminate()
 
 

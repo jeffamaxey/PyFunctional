@@ -69,7 +69,7 @@ def starmap_t(func):
     :return: transformation
     """
     return Transformation(
-        "starmap({})".format(name(func)),
+        f"starmap({name(func)})",
         partial(starmap, func),
         {ExecutionStrategies.PARALLEL},
     )
@@ -202,10 +202,7 @@ def drop_right_t(n):
     :param n: number to drop from right
     :return: transformation
     """
-    if n <= 0:
-        end_index = None
-    else:
-        end_index = -n
+    end_index = None if n <= 0 else -n
     return Transformation(
         "drop_right({0})".format(n),
         lambda sequence: sequence[:end_index],
@@ -265,8 +262,7 @@ def flat_map_impl(func, sequence):
     :return: flat_map generator
     """
     for element in sequence:
-        for value in func(element):
-            yield value
+        yield from func(element)
 
 
 def flat_map_t(func):
@@ -458,10 +454,7 @@ def reduce_by_key_impl(func, sequence):
     """
     result = {}
     for key, value in sequence:
-        if key in result:
-            result[key] = func(result[key], value)
-        else:
-            result[key] = value
+        result[key] = func(result[key], value) if key in result else value
     return result.items()
 
 
@@ -653,16 +646,15 @@ def inner_join_impl(other, sequence):
     :param sequence: first sequence to join with
     :return: joined sequence
     """
-    seq_dict = {}
-    for element in sequence:
-        seq_dict[element[0]] = element[1]
+    seq_dict = {element[0]: element[1] for element in sequence}
     seq_kv = seq_dict
     other_kv = dict(other)
     keys = seq_kv.keys() if len(seq_kv) < len(other_kv) else other_kv.keys()
-    result = {}
-    for k in keys:
-        if k in seq_kv and k in other_kv:
-            result[k] = (seq_kv[k], other_kv[k])
+    result = {
+        k: (seq_kv[k], other_kv[k])
+        for k in keys
+        if k in seq_kv and k in other_kv
+    }
     return result.items()
 
 
@@ -676,9 +668,7 @@ def join_impl(other, join_type, sequence):
     """
     if join_type == "inner":
         return inner_join_impl(other, sequence)
-    seq_dict = {}
-    for element in sequence:
-        seq_dict[element[0]] = element[1]
+    seq_dict = {element[0]: element[1] for element in sequence}
     seq_kv = seq_dict
     other_kv = dict(other)
     if join_type == "left":
@@ -689,9 +679,7 @@ def join_impl(other, join_type, sequence):
         keys = set(list(seq_kv.keys()) + list(other_kv.keys()))
     else:
         raise TypeError("Wrong type of join specified")
-    result = {}
-    for k in keys:
-        result[k] = (seq_kv.get(k), other_kv.get(k))
+    result = {k: (seq_kv.get(k), other_kv.get(k)) for k in keys}
     return result.items()
 
 

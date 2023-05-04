@@ -13,11 +13,9 @@ except (IOError, ImportError):
 common_install_requires = ["dill>=0.2.5", "tabulate<=1.0.0"]
 if "__pypy__" in sys.builtin_module_names:
     compression_requires = ["bz2file==0.98", "backports.lzma==0.0.6"]
-    install_requires = common_install_requires
 else:
     compression_requires = []
-    install_requires = common_install_requires
-
+install_requires = common_install_requires
 setup(
     name="PyFunctional",
     description="Package for creating data pipelines with chain functional programming",

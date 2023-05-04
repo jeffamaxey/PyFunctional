@@ -103,7 +103,7 @@ class Sequence(object):
         if self._max_repr_items is None or len(items) <= self._max_repr_items:
             return repr(items)
         else:
-            return repr(items[: self._max_repr_items])[:-1] + ", ...]"
+            return f"{repr(items[:self._max_repr_items])[:-1]}, ...]"
 
     def __str__(self):
         """
@@ -268,9 +268,7 @@ class Sequence(object):
 
         :return: first element of sequence or None if sequence is empty
         """
-        if not self.sequence:
-            return None
-        return self.head()
+        return self.head() if self.sequence else None
 
     def last(self):
         """
@@ -302,9 +300,7 @@ class Sequence(object):
 
         :return: last element of sequence or None if sequence is empty
         """
-        if not self.sequence:
-            return None
-        return self.last()
+        return self.last() if self.sequence else None
 
     def init(self):
         """
@@ -607,11 +603,7 @@ class Sequence(object):
         :param func: predicate to count elements on
         :return: count of elements that satisfy predicate
         """
-        n = 0
-        for element in self:
-            if func(element):
-                n += 1
-        return n
+        return sum(1 for element in self if func(element))
 
     def len(self):
         """
@@ -702,10 +694,7 @@ class Sequence(object):
         :param func: existence check function
         :return: True if any element satisfies func
         """
-        for element in self:
-            if func(element):
-                return True
-        return False
+        return any(func(element) for element in self)
 
     def for_all(self, func):
         """
@@ -720,10 +709,7 @@ class Sequence(object):
         :param func: function to check truth value of all elements with
         :return: True if all elements make func evaluate to True
         """
-        for element in self:
-            if not func(element):
-                return False
-        return True
+        return all(func(element) for element in self)
 
     def max(self):
         """
@@ -848,10 +834,7 @@ class Sequence(object):
         :param func: function to find with
         :return: first element to satisfy func or None
         """
-        for element in self:
-            if func(element):
-                return element
-        return None
+        return next((element for element in self if func(element)), None)
 
     def flatten(self):
         """
@@ -951,7 +934,7 @@ class Sequence(object):
         :param initial: single optional argument acting as initial value
         :return: reduced value using func
         """
-        if len(initial) == 0:
+        if not initial:
             return _wrap(reduce(func, self))
         elif len(initial) == 1:
             return _wrap(reduce(func, self, initial[0]))
@@ -1004,20 +987,10 @@ class Sequence(object):
         :return: product of elements in sequence
         """
         if self.empty():
-            if projection:
-                return projection(1)
-            else:
-                return 1
+            return projection(1) if projection else 1
         if self.size() == 1:
-            if projection:
-                return projection(self.first())
-            else:
-                return self.first()
-
-        if projection:
-            return self.map(projection).reduce(mul)
-        else:
-            return self.reduce(mul)
+            return projection(self.first()) if projection else self.first()
+        return self.map(projection).reduce(mul) if projection else self.reduce(mul)
 
     def sum(self, projection=None):
         """
@@ -1032,10 +1005,7 @@ class Sequence(object):
         :param projection: function to project on the sequence before taking the sum
         :return: sum of elements in sequence
         """
-        if projection:
-            return sum(self.map(projection))
-        else:
-            return sum(self)
+        return sum(self.map(projection)) if projection else sum(self)
 
     def average(self, projection=None):
         """
@@ -1050,10 +1020,7 @@ class Sequence(object):
         :return: average of elements in the sequence
         """
         length = self.size()
-        if projection:
-            return sum(self.map(projection)) / length
-        else:
-            return sum(self) / length
+        return sum(self.map(projection)) / length if projection else sum(self) / length
 
     def aggregate(self, *args):
         """
@@ -1383,11 +1350,10 @@ class Sequence(object):
         :param n: Take n elements of sequence if not None
         :return: list of elements in sequence
         """
-        if n is None:
-            self.cache()
-            return self._base_sequence
-        else:
+        if n is not None:
             return self.cache().take(n).list()
+        self.cache()
+        return self._base_sequence
 
     def list(self, n=None):
         """
@@ -1457,16 +1423,13 @@ class Sequence(object):
             value and used for collections.defaultdict
         :return: dictionary from sequence of (Key, Value) elements
         """
-        dictionary = {}
-        for e in self.sequence:
-            dictionary[e[0]] = e[1]
+        dictionary = {e[0]: e[1] for e in self.sequence}
         if default is None:
             return dictionary
+        if hasattr(default, "__call__"):
+            return collections.defaultdict(default, dictionary)
         else:
-            if hasattr(default, "__call__"):
-                return collections.defaultdict(default, dictionary)
-            else:
-                return collections.defaultdict(lambda: default, dictionary)
+            return collections.defaultdict(lambda: default, dictionary)
 
     def dict(self, default=None):
         """
@@ -1768,10 +1731,10 @@ class Sequence(object):
             message = ""
         else:
             rows = self.take(n).list()
-            if tablefmt == "simple":
-                message = "\nShowing {} of {} rows".format(n, length)
-            elif tablefmt == "html":
-                message = "<p>Showing {} of {} rows".format(n, length)
+            if tablefmt == "html":
+                message = f"<p>Showing {n} of {length} rows"
+            elif tablefmt == "simple":
+                message = f"\nShowing {n} of {length} rows"
             else:
                 message = ""
         if len(headers) == 0 and is_namedtuple(rows[0]):

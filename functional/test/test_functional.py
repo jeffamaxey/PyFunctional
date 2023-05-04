@@ -107,9 +107,7 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(l, e)
         l = self.seq([1, 2, 3])
         e = [1, 2, 3]
-        result = []
-        for n in l:
-            result.append(n)
+        result = list(l)
         self.assertEqual(result, e)
         self.assert_type(l)
 
@@ -592,9 +590,7 @@ class TestPipeline(unittest.TestCase):
         f = lambda x: x[0]
         expect = {1: [(1, 1), (1, 2), (1, 3)], 2: [(2, 2)]}
         result = self.seq(l).group_by(f)
-        result_comparison = {}
-        for kv in result:
-            result_comparison[kv[0]] = kv[1]
+        result_comparison = {kv[0]: kv[1] for kv in result}
         self.assertIteratorEqual(expect, result_comparison)
         self.assert_type(result)
 
@@ -621,9 +617,9 @@ class TestPipeline(unittest.TestCase):
 
     def test_grouped_returns_list_of_lists(self):
         test_inputs = [
-            [i for i in "abcdefghijklmnop"],
+            list("abcdefghijklmnop"),
             [None for i in range(10)],
-            [i for i in range(10)],
+            list(range(10)),
             [[i] for i in range(10)],
             [{i} for i in range(10)],
             [{i, i + 1} for i in range(10)],
@@ -1020,7 +1016,7 @@ class TestExtend(unittest.TestCase):
         result = seq.range(100).square_parallel()
         self.assertEqual(result.sum(), sum(expected))
         self.assertEqual(
-            repr(result._lineage), "Lineage: sequence -> extended[%s]" % name
+            repr(result._lineage), f"Lineage: sequence -> extended[{name}]"
         )
 
         @extend

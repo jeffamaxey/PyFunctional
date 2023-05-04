@@ -54,15 +54,14 @@ class ReusableFile(object):
         """
         # pylint: disable=no-member
         with builtins.open(
-            self.path,
-            mode=self.mode,
-            buffering=self.buffering,
-            encoding=self.encoding,
-            errors=self.errors,
-            newline=self.newline,
-        ) as file_content:
-            for line in file_content:
-                yield line
+                self.path,
+                mode=self.mode,
+                buffering=self.buffering,
+                encoding=self.encoding,
+                errors=self.errors,
+                newline=self.newline,
+            ) as file_content:
+            yield from file_content
 
     def read(self):
         # pylint: disable=no-member
@@ -139,19 +138,17 @@ class GZFile(CompressedFile):
             with gzip.GzipFile(self.path, compresslevel=self.compresslevel) as gz_file:
                 gz_file.read1 = gz_file.read
                 with io.TextIOWrapper(
-                    gz_file,
-                    encoding=self.encoding,
-                    errors=self.errors,
-                    newline=self.newline,
-                ) as file_content:
-                    for line in file_content:
-                        yield line
+                                gz_file,
+                                encoding=self.encoding,
+                                errors=self.errors,
+                                newline=self.newline,
+                            ) as file_content:
+                    yield from file_content
         else:
             with gzip.open(
-                self.path, mode=self.mode, compresslevel=self.compresslevel
-            ) as file_content:
-                for line in file_content:
-                    yield line
+                        self.path, mode=self.mode, compresslevel=self.compresslevel
+                    ) as file_content:
+                yield from file_content
 
     def read(self):
         with gzip.GzipFile(self.path, compresslevel=self.compresslevel) as gz_file:
@@ -193,15 +190,14 @@ class BZ2File(CompressedFile):
 
     def __iter__(self):
         with bz2.open(
-            self.path,
-            mode=self.mode,
-            compresslevel=self.compresslevel,
-            encoding=self.encoding,
-            errors=self.errors,
-            newline=self.newline,
-        ) as file_content:
-            for line in file_content:
-                yield line
+                self.path,
+                mode=self.mode,
+                compresslevel=self.compresslevel,
+                encoding=self.encoding,
+                errors=self.errors,
+                newline=self.newline,
+            ) as file_content:
+            yield from file_content
 
     def read(self):
         with bz2.open(
@@ -251,18 +247,17 @@ class XZFile(CompressedFile):
 
     def __iter__(self):
         with lzma.open(
-            self.path,
-            mode=self.mode,
-            format=self.format,
-            check=self.check,
-            preset=self.preset,
-            filters=self.filters,
-            encoding=self.encoding,
-            errors=self.errors,
-            newline=self.newline,
-        ) as file_content:
-            for line in file_content:
-                yield line
+                self.path,
+                mode=self.mode,
+                format=self.format,
+                check=self.check,
+                preset=self.preset,
+                filters=self.filters,
+                encoding=self.encoding,
+                errors=self.errors,
+                newline=self.newline,
+            ) as file_content:
+            yield from file_content
 
     def read(self):
         with lzma.open(
@@ -286,14 +281,16 @@ N_COMPRESSION_CHECK_BYTES = max(len(cls.magic_bytes) for cls in COMPRESSION_CLAS
 def get_read_function(filename, disable_compression):
     if disable_compression:
         return ReusableFile
-    else:
-        with open(filename, "rb") as f:
-            start_bytes = f.read(N_COMPRESSION_CHECK_BYTES)
-            for cls in COMPRESSION_CLASSES:
-                if cls.is_compressed(start_bytes):
-                    return cls
-
-            return ReusableFile
+    with open(filename, "rb") as f:
+        start_bytes = f.read(N_COMPRESSION_CHECK_BYTES)
+        return next(
+            (
+                cls
+                for cls in COMPRESSION_CLASSES
+                if cls.is_compressed(start_bytes)
+            ),
+            ReusableFile,
+        )
 
 
 def universal_write_open(
